@@ -1,0 +1,7 @@
+.metadata/
+.settings
+Debug/
+Release/
+*~
+*.d
+*.o

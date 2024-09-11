@@ -1,0 +1,1 @@
+/home/devop/local/OpenOCD/bin/openocd_8051_1T -c "gdb_port 50003" -c "tcl_port 50004" -c "telnet_port 50005" -s /media/devop/Archive/nuvoton/distancionno -f /home/devop/.vscode/extensions/dmarinov.dmarinov-gdb-1.0.2/support/openocd-helpers.tcl -f /home/devop/local/OpenOCD/scripts/interface/nulink.cfg -f /home/devop/local/OpenOCD/scripts/target/numicro8051_1T.cfg

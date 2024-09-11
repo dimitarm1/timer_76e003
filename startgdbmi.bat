@@ -1,0 +1,1 @@
+ "C:\Program Files (x86)\Nuvoton Tools\Toolchain\SDCC\gdb\gdb" --interpreter=mi3
