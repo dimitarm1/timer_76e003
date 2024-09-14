@@ -19,7 +19,7 @@
  * MA 02110-1301, USA.
  */
 
-#include "stm8l.h"
+#include "numicro_8051.h"
 #include "led.h"
 
 /*
@@ -83,40 +83,6 @@ static const U8 LED_bits[18] = {0xfe,0x30,0xed,0xf9,0x33,0xdb,0xdf,0xf0,0xff,0xf
 													0xf7,0x3f,0x0d,0x3d,0xcf,0xe7,0x01,0};
 
 /**
- * Setup for writing a letter
- * @param ltr - letter (0..17 for 0..F, - or h | 0x80 for DP, any other value for 'space')
- */
-void write_letter(U8 ltr){
-	U8 L = ltr & 0x7f;
-	U8 i;
-	PD_ODR &= ~((1<<3) | (1<<2)); // turn off digits 1..5
-	PC_ODR &= ~((1<<7) | (1<<6)| (1<<4) | (1<<3) ); // turn off digits 1..5	
-	if(L < 18){ // letter
-		L = LED_bits[L];
-	}else{ // space
-		L = 0;
-	}
-
-	for (i = 0; i<7; i++)
-	{
-		PD_ODR &= ~(1<<1); // Clear CLK
-		_asm("nop");
-		_asm("nop");		
-		if((L>>i) & 1)
-		{
-			PC_ODR &= ~(1<<5); // Set LED on
-		}
-		else
-		{
-			PC_ODR |= (1<<5); // Set LED OFF			
-		}
-		PD_ODR |= (1<<1); // Set CLK - rising edge transfers data		
-		_asm("nop");
-		_asm("nop");		
-	}
-}
-
-/**
  * Turn on anode power for digit N (0..3: PA3, PD6, PD4, PD1 -- A0x08, D0x40, D0x10, D0x02)
  * @param N - number of digit (0..3), if other - no action (display off)
  * @return
@@ -124,34 +90,49 @@ void write_letter(U8 ltr){
 void light_up_digit(U8 N){
 	switch(N){
 		case 0:
-			//PD_ODR |= (1<<1);
-			PC_ODR |= (1<<7);
+			 P12 = 0; // Digit 1
 		break;
 		case 1:
-			PC_ODR |= (1<<3);
+			 P01 = 0; // Digit 2
 		break;
 		case 2: 
-#if BOARD_VER == 2
-			PC_ODR |= (1<<4);
-#else
-			PD_ODR |= (1<<3);
-#endif	
+			 P04 = 1; // Digit 3
 	  break;
 		case 3:
-#if BOARD_VER == 2
-			PD_ODR |= (1<<3);
-#else						
-			PC_ODR |= (1<<4);
-#endif						
+			 P11 = 1; // Digit 4
 		break;
 		case 4:
-			PD_ODR |= (1<<2);
+			 P03 = 0; // Digit 5
 		break;
 		case 5:
-			PC_ODR |= (1<<6);
+			 P00 = 0; // Digit 6
 		break;
 	}
 }
+
+void light_off_digit(U8 N){
+	switch(N){
+		case 0:
+			 P12 = 1; // Digit 1
+		break;
+		case 1:
+			 P01 = 1; // Digit 2
+		break;
+		case 2:
+			 P04 = 0; // Digit 3
+	  break;
+		case 3:
+			 P11 = 0; // Digit 4
+		break;
+		case 4:
+			 P03 = 1; // Digit 5
+		break;
+		case 5:
+			 P00 = 1; // Digit 6
+		break;
+	}
+}
+
 
 static U8 display_buffer[6] = {' ',' ',' ',' ',' ',' '}; // blank by default
 U8 N_current = 0; // current digit to display
@@ -211,16 +192,58 @@ void set_display_buf(char *str){
  * Show Nth digit of buffer (function ran by timer)
  * @param N - number of digit in buffer (0..3)
  */
+/**
+* Setup for writing a letter
+* @param ltr - letter (0..17 for 0..F, - or h | 0x80 for DP, any other value for 'space')
+*/
 void show_buf_digit(U8 N){
+	U8 L;
+	U8 i;
+	U8 b = 0;
+
 	if(N > 5) return;
-	write_letter(display_buffer[N]);
+	if(N == 2 || N == 3) {
+		b = 1;
+	}
+//	write_letter(display_buffer[N]);
+	L = display_buffer[N] & 0x7f;
+//	all_digits_off();
+	if(L < 18){ // letter
+		L = LED_bits[L];
+	}else{ // space
+		L = 0;
+	}
+	if(N == 0) {
+		light_off_digit(5);
+	}
+	else {
+		light_off_digit(N-1);
+	}
+	for (i = 0; i<7; i++)
+	{
+		CLOCK = 0; // Clear CLK
+//		_asm("nop");
+//		_asm("nop");
+		if((L>>i) & 1)
+		{
+			DATA = !b; // Set LED on
+		}
+		else
+		{
+			DATA = b; // Set LED OFF
+		}
+		CLOCK = 1; // Set CLK - rising edge transfers data
+//		_asm("nop");
+//		_asm("nop");
+	}
+
 	light_up_digit(N);
 }
 
 /**
  * Show next digit - function calls from main() by some system time value amount
  */
-void show_next_digit(){
+void show_next_digit(void){
 	show_buf_digit(N_current++);
 	if(N_current > 5) N_current = 0;
 }
@@ -234,9 +257,9 @@ void show_next_digit(){
 void display_int(S32 I){
 	signed char rem;
 	signed char i;
-	signed char N, sign = 0;
+	signed char sign = 0;
 	if(I < -999999 || I > 999999){
-		set_display_buf("---E");
+		set_display_buf("--EE--");
 		return;
 	}
 //	set_display_buf(NULL); // empty buffer
@@ -252,12 +275,12 @@ void display_int(S32 I){
 	}
 	for (i = 0; i < 6; i++)
 	{
-		rem = I % 10;
+		rem = I - (I/10);
 		display_buffer[5-i] = rem; //rem;
-		I /= 10;
+		I = I/10;
 		if(I == 0) break;
 	}
-	if(sign && N < 6) display_buffer[5-N] = 16; // minus sign
+	if(sign && i < 6) display_buffer[5-i] = 16; // minus sign
 }
 
 

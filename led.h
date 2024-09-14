@@ -21,17 +21,11 @@
 #pragma once
 #ifndef __LED_H__
 #define __LED_H__
-#include "stm8l.h"
-#define BOARD_VER 2
-//#define BAUD_9600
+#define U8 unsigned char
+#define S32 long int
 
-#if (BOARD_VER==1) 
-	#define BEEP_ON()  BEEP_CSR = 0xbe;
-	#define BEEP_OFF() BEEP_CSR = 0x1e;
-#else
-	#define BEEP_ON()  PD_ODR &= ~(1<<4);
-	#define BEEP_OFF() PD_ODR |= (1<<4);
-#endif
+#define CLOCK          P06
+#define DATA           P10
 
 void set_display_buf(char *str);
 void show_buf_digit(U8 N);
@@ -39,6 +33,7 @@ void show_next_digit(void);
 void display_int_sec(S32 i);
 void display_int(S32 i);
 void display_DP_at_pos(U8 i);
+void all_digits_off(void);
 
 /**
  * Initialize ports
