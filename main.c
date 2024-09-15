@@ -20,6 +20,12 @@
 #define KEY_RELEASED   0xF0
 
 
+#define BUTTON_MINUS   0x01
+#define BUTTON_PLUS    0x02
+#define BUTTON_START   0x04
+#define BUTTON_STOP    0x08
+
+
 unsigned short keys_scan_buffer[4];
 unsigned char key_state;
 short counter = 0;
@@ -27,6 +33,9 @@ int seconds_counter = 0;
 int pre_time;
 int main_time;
 int cool_time;
+U8 last_key;
+U8 new_key;
+U8 buzz_counter;
 
 
 /********** current variant **********/
@@ -78,7 +87,7 @@ unsigned char scan_keys(void)
 			if((key_state & (1<<i)))
 			{
 				key_state = key_state & (~((unsigned char)(0x11<<i)));
-				result = result | (0x10<<i);
+//				result = result | (0x10<<i);
 			}
 		}
 
@@ -109,10 +118,16 @@ void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
     clr_TCON_TF0;
     show_next_digit();
     counter++;
+    if(buzz_counter) {
+    	buzz_counter--;
+    	if(!buzz_counter) {
+    		P05 = 1;
+    	}
+    }
     if(counter > 336) {
     	counter = 0;
     	P14 ^= 1;
-    	seconds_counter++;
+//    	seconds_counter++;
     	display_int_sec(seconds_counter);
     }
     if (SFRS_TMP)                 /* for SFRS page */
@@ -125,9 +140,11 @@ void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
 void main (void) 
 {
 	unsigned char i;
+	unsigned int j;
 	MODIFY_HIRC(HIRC_16);
 
 	seconds_counter = 0;
+	last_key = 0;
 
     ALL_GPIO_QUASI_MODE; // All GPIO are disabled
 
@@ -145,11 +162,13 @@ void main (void)
     P11_PUSHPULL_MODE; // Digit 4
     P03_PUSHPULL_MODE; // Digit 5
     P00_PUSHPULL_MODE; // Digit 6
+
+    P05_PUSHPULL_MODE; // Buzzer
     // Keyboard
-    P15_INPUT_MODE; // Key1
-    P30_INPUT_MODE; // Key2
-    P07_INPUT_MODE; // Key3
-    P13_INPUT_MODE; // Key4
+    P15 = 1; // Key1
+    P30 = 1; // Key2
+    P07 = 1; // Key3
+    P13 = 1; // Key4
 
     all_digits_off();
     display_int(123456);
@@ -184,10 +203,36 @@ void main (void)
 //	  P10 ^= 1;
 //	  P04 ^= 1;
 //	  P14 ^= 1;
-      for(i = 0; i < 6; i++) {
+      for(j = 0; j < 640; j++) {
+    	  ;
 //    	  Timer2_Delay(24000000,4,200,3);
 //		  Timer2_Delay(24000000,4,200,1000);
 
+      }
+
+      new_key = scan_keys();
+      if(new_key != last_key) {
+    	  last_key = new_key;
+    	  if( new_key) {
+//    		  seconds_counter++;
+    		  buzz_counter = 25;
+    		  P05 = 0; // Buzzer on
+    		  switch (new_key) {
+    		  case BUTTON_START:
+    			  break;
+    		  case BUTTON_STOP:
+				  break;
+    		  case BUTTON_MINUS:
+    			  seconds_counter = seconds_counter + 60;
+				  break;
+    		  case BUTTON_PLUS:
+    			  if(seconds_counter > 59) {
+    				  seconds_counter = seconds_counter - 60;
+    			  }
+				  break;
+    		  }
+    		  display_int_sec(seconds_counter);
+    	  }
       }
    }
 
