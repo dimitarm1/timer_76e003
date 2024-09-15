@@ -22,7 +22,11 @@
 
 unsigned short keys_scan_buffer[4];
 unsigned char key_state;
-int counter = 0;
+short counter = 0;
+int seconds_counter = 0;
+int pre_time;
+int main_time;
+int cool_time;
 
 
 /********** current variant **********/
@@ -92,131 +96,38 @@ void all_digits_off(void) {
     P00 = 1; // Digit 6
 }
 
-/**
- * fills buffer to display
- * @param str - string to display, contains "0..f" for digits, " " for space, "." for DP
- * 				for example: " 1.22" or "h1ab" (something like "0...abc" equivalent to "0.abc"
- * 				register independent!
- * 			any other letter would be omitted
- * 			if NULL - fill buffer with spaces
- */
-//void set_display_buf(char *str){
-//	U8 B[4];
-//	signed char ch, M = 0, i;
-//	//N_current = 0; // refresh current digit number
-//	// empty buffer
-//	for(i = 0; i < 6; i++)
-//		display_buffer[i] = ' ';
-//	if(!str) return;
-//	i = 0;
-//	for(;(ch = *str) && (i < 6); str++){
-//		M = 0;
-//		if(ch > '/' && ch < ':'){ // digit
-//			M = '0';
-//		}else if(ch > '`' & ch < 'g'){ // a..f
-//			M = 'a' - 10;
-//		}else if(ch > '@' & ch < 'G'){ // A..F
-//			M = 'A' - 10;
-//		}else if(ch == '-'){ // minus
-//			M = '-' - 16;
-//		}else if(ch == 'h'){ // hex
-//			M = 'h' - 17;
-//		}else if(ch == 'H'){ // hex
-//			M = 'H' - 17;
-//		}else if(ch == '.'){ // DP, set it to previous char
-//			if(i == 0){ // word starts from '.' - make a space with point
-//				B[0] = 0xff;
-//			}else{ // set point for previous character
-//				B[i-1] |= 0x80;
-//			}
-//			continue;
-//		}else if(ch != ' '){ // bad character - continue
-//			continue;
-//		}
-//		B[i] = ch - M;
-//		i++;
-//	}
-//	// now make align to right
-//	ch = 5;
-//	for(M = i-1; M > -1; M--, ch--){
-//		display_buffer[ch] = B[M];
-//	}
-//}
 
-/**
- * Turn on anode power for digit N (0..3: PA3, PD6, PD4, PD1 -- A0x08, D0x40, D0x10, D0x02)
- * @param N - number of digit (0..3), if other - no action (display off)
- * @return
- */
-//void light_up_digit(U8 N){
-//	switch(N){
-//		case 0:
-//			 P12 = 1; // Digit 1
-//		break;
-//		case 1:
-//			 P01 = 1; // Digit 2
-//		break;
-//		case 2:
-//			 P04 = 0; // Digit 3
-//	  break;
-//		case 3:
-//			 P11 = 0; // Digit 4
-//		break;
-//		case 4:
-//			 P03 = 1; // Digit 5
-//		break;
-//		case 5:
-//			 P00 = 1; // Digit 6
-//		break;
-//	}
-//}
-//
-///**
-// * convert integer value in into string and display it
-// * @param i - value to display, -999999 <= i <= 999999, if wrong, displays "---E"
-// */
-//void display_int(S32 I){
-//	int rem = 0;
-//	signed char i;
-//	signed char sign = 0;
-////	if(I < -999999 || I > 999999){
-////		set_display_buf("---E");
-////		return;
-////	}
-//	set_display_buf(NULL); // empty buffer
-//	for(i = 0; i < 6; i++)
-//		display_buffer[i] = 0;
-//	if(I == 0){ // just show zero
-//		display_buffer[3] = 0;
-//		return;
-//	}
-//	if(I < 0){
-//		sign = 1;
-//		I *= -1;
-//	}
-//	for (i = 0; i < 6; i++)
-//	{
-////		rem = I % 10;
-//		rem = I - (I/10);
-//		display_buffer[5-i] = rem; //rem;
-//		I = I/10;
-//		if(I == 0) break;
-//	}
-//	if(sign && i < 6) display_buffer[5-i] = 16; // minus sign
-//}
+
+void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
+{
+    SFRS_TMP = SFRS;              /* for SFRS page */
+    SFRS = 0;
+/* following setting for reload Timer 0 counter */
+    TH0 = TH0TMP;
+    TL0 = TL0TMP;
+/* following clear flag for next interrupt */
+    clr_TCON_TF0;
+    show_next_digit();
+    counter++;
+    if(counter > 336) {
+    	counter = 0;
+    	P14 ^= 1;
+    	seconds_counter++;
+    	display_int_sec(seconds_counter);
+    }
+    if (SFRS_TMP)                 /* for SFRS page */
+    {
+      ENABLE_SFR_PAGE1;
+    }
+}
 
 
 void main (void) 
 {
 	unsigned char i;
-/* UART0 initial setting
-  * include sys.c in Library for modify HIRC value to 24MHz
-  * include uart.c in Library for UART initial setting
-*/
-//    MODIFY_HIRC(HIRC_166);
-//    Enable_UART0_VCOM_printf_166M_115200();
+	MODIFY_HIRC(HIRC_16);
 
-//    printf("\n\r Hello world!");
+	seconds_counter = 0;
 
     ALL_GPIO_QUASI_MODE; // All GPIO are disabled
 
@@ -224,12 +135,12 @@ void main (void)
     P10_PUSHPULL_MODE; // Shift data out
 
     P14_PUSHPULL_MODE; // Led Fan (green)
-    P16_PUSHPULL_MODE; // Led Lampi (red)
+//    P16_PUSHPULL_MODE; // Led Lampi (red)
 
 
     // Digits Common Anode
-    P12_PUSHPULL_MODE; // Digit 1
-    P01_PUSHPULL_MODE; // Digit 2
+    P01_PUSHPULL_MODE; // Digit 1
+    P12_PUSHPULL_MODE; // Digit 2
     P04_PUSHPULL_MODE; // Digit 3
     P11_PUSHPULL_MODE; // Digit 4
     P03_PUSHPULL_MODE; // Digit 5
@@ -241,7 +152,7 @@ void main (void)
     P13_INPUT_MODE; // Key4
 
     all_digits_off();
-    display_int(4);
+    display_int(123456);
 
     P12 = 0; // Digit 1
 	P01 = 0; // Digit 2
@@ -255,6 +166,9 @@ void main (void)
 	  P06 ^=1;
 	  P10 = (i&2)/2;
 	}
+
+    Timer0_AutoReload_Interrupt_Initial(24,2000);
+    ENABLE_GLOBAL_INTERRUPT;
     while(1)
     {
 
@@ -269,11 +183,11 @@ void main (void)
 //      }
 //	  P10 ^= 1;
 //	  P04 ^= 1;
-	  P14 ^= 1;
+//	  P14 ^= 1;
       for(i = 0; i < 6; i++) {
-    	  Timer2_Delay(24000000,4,200,3);
+//    	  Timer2_Delay(24000000,4,200,3);
 //		  Timer2_Delay(24000000,4,200,1000);
-    	  show_next_digit();
+
       }
    }
 

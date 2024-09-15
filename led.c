@@ -90,10 +90,10 @@ static const U8 LED_bits[18] = {0xfe,0x30,0xed,0xf9,0x33,0xdb,0xdf,0xf0,0xff,0xf
 void light_up_digit(U8 N){
 	switch(N){
 		case 0:
-			 P12 = 0; // Digit 1
+			 P01 = 0; // Digit 1
 		break;
 		case 1:
-			 P01 = 0; // Digit 2
+			 P12 = 0; // Digit 2
 		break;
 		case 2: 
 			 P04 = 1; // Digit 3
@@ -113,10 +113,10 @@ void light_up_digit(U8 N){
 void light_off_digit(U8 N){
 	switch(N){
 		case 0:
-			 P12 = 1; // Digit 1
+			 P01 = 1; // Digit 1
 		break;
 		case 1:
-			 P01 = 1; // Digit 2
+			 P12 = 1; // Digit 2
 		break;
 		case 2:
 			 P04 = 0; // Digit 3
@@ -266,7 +266,6 @@ void display_int(S32 I){
 	for(i = 0; i < 6; i++)
 		display_buffer[i] = 0;
 	if(I == 0){ // just show zero
-		display_buffer[3] = 0;
 		return;
 	}
 	if(I < 0){
@@ -275,7 +274,7 @@ void display_int(S32 I){
 	}
 	for (i = 0; i < 6; i++)
 	{
-		rem = I - (I/10);
+		rem = I - (I/10)*10;
 		display_buffer[5-i] = rem; //rem;
 		I = I/10;
 		if(I == 0) break;
@@ -291,29 +290,20 @@ void display_int(S32 I){
 void display_int_sec(S32 I){
 	S32 rem;
 	signed char i;
-	signed char N = 5, sign = 0;
-	if(I < -999999 || I > 999999){
-		set_display_buf("---E");
-		return;
-	}
-//	set_display_buf(NULL); // empty buffer
+	signed char N = 5;
+
 	for(i = 0; i < 6; i++)
 		display_buffer[i] = 0;
 	if(I == 0){ // just show zero
-		display_buffer[3] = 0;
 		return;
 	}
-	if(I < 0){
-		sign = 1;
-		I *= -1;
-	}
-	I = I/3600 * 10000 + ((I%3600)/60)* 100 + I%60;
+
+	I = I/3600 * 10000 + ((I - (I/3600)*3600)/60)* 100 + (I - (I/60)*60);
 	do{
-		rem = I % 10;
+		rem = I - (I/10)*10;
 		display_buffer[N] = rem;
 		I /= 10;
 	}while(--N > -1 && I);
-	if(sign && N > -1) display_buffer[N] = 16; // minus sign
 }
 
 

@@ -20,17 +20,17 @@ void INT0_ISR(void) __interrupt (0)          // Vector @  0x03
     }
 }
 //-----------------------------------------------------------------------------------------------------------
-void Timer0_ISR(void) __interrupt (1)         // Vector @  0x0B
-{
-    SFRS_TMP = SFRS;              /* for SFRS page */
-  
-    clr_TCON_TF0;
-
-    if (SFRS_TMP)                 /* for SFRS page */
-    {
-      ENABLE_SFR_PAGE1;
-    }
-}
+//void Timer0_ISR(void) __interrupt (1)         // Vector @  0x0B
+//{
+//    SFRS_TMP = SFRS;              /* for SFRS page */
+//
+//    clr_TCON_TF0;
+//
+//    if (SFRS_TMP)                 /* for SFRS page */
+//    {
+//      ENABLE_SFR_PAGE1;
+//    }
+//}
 //-----------------------------------------------------------------------------------------------------------
 void INT1_ISR(void) __interrupt (2)          // Vector @  0x13
 {
