@@ -63,6 +63,16 @@ void main (void)
 #define BUTTON_START   0x04
 #define BUTTON_STOP    0x08
 
+#define STATE_NONE					0
+#define STATE_WAITING   		1
+#define STATE_WORKING   		2
+#define STATE_COOLING   		3
+#define STATE_DISPLAY_HOURS 4
+
+#define DEFAULT_COOL_TIME_SEC	(3*60)
+#define DEFAULT_WAIT_TIME_SEC (9*60)
+#define ROLL_OVER_VALUE					336
+
 
 unsigned short keys_scan_buffer[4];
 unsigned char key_state;
@@ -74,6 +84,17 @@ int cool_time;
 U8 last_key;
 U8 new_key;
 U8 buzz_counter;
+U8 current_state;
+U8 finished;
+U8 refresh_display;
+
+
+typedef union {
+	char data_bytes[4];
+	int time;
+} timedata_t;
+
+timedata_t timedata;
 
 
 /********** current variant **********/
@@ -144,6 +165,26 @@ void all_digits_off(void) {
 }
 
 
+// Unused
+void start_pressed() {
+	
+	if(current_state == STATE_WAITING) {
+		current_state = STATE_WORKING;
+		P14 = 1; // Fan is on
+		//P16 = 1; // Relay lampi is on
+	}
+	if(current_state == STATE_NONE) {
+		if(pre_time) {
+			current_state = STATE_WAITING;
+		}
+		else {
+			display_int_sec(timedata.time);
+		}
+		return;
+	}
+}
+
+
 #if defined __C51__
 void Timer0_ISR (void) interrupt 1              // vector=0x0B 
 
@@ -170,12 +211,70 @@ void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
     		P05 = 1;
     	}
     }
-    if(counter > 336) {
+    if(counter > ROLL_OVER_VALUE) {
     	counter = 0;
+			
     	P14 ^= 1;
-//    	seconds_counter++;
-    	display_int_sec(seconds_counter);
+			if(current_state != STATE_NONE) {
+				refresh_display = 1;
+				if(pre_time) {
+					pre_time--;
+					if(!pre_time) {
+						if(main_time) {
+							P14 = 1; // Fan is on
+							//P16 = 1; // Relay lampi is on
+							current_state = STATE_WORKING;
+						}
+						else {
+							if(!cool_time) {
+								cool_time = DEFAULT_COOL_TIME_SEC;
+							}
+							P14 = 1; // Fan is on
+							//P16 = 0; // Relay lampi is off
+							current_state = STATE_COOLING;
+						}
+					}
+				}
+				else if(main_time) {
+					main_time--;
+					seconds_counter++;
+					if(!main_time) {
+						if(!cool_time) {
+							cool_time = DEFAULT_COOL_TIME_SEC;
+						}
+						P14 = 1; // Fan is on
+						//P16 = 0; // Relay lampi is off
+						current_state = STATE_COOLING;
+					}
+				}
+				else if(cool_time) {
+					cool_time--;
+					if(!cool_time) {
+						P14 = 0; // Fan is off
+					  //P16 = 0; // Relay lampi is off
+						// Write data to EEPROM
+						current_state = STATE_NONE;
+						finished = 1;
+					}				
+				}
+			}	
     }
+		if(refresh_display){
+			refresh_display = 0;
+			if(current_state == STATE_WORKING){
+				display_int_sec(main_time);
+			}
+			else if(current_state == STATE_WAITING){
+				display_int_sec(pre_time);
+			}
+			else if(current_state == STATE_COOLING){
+				display_int_sec(cool_time);
+			}
+			else if(current_state == STATE_NONE){
+				display_int_sec(0);
+			}
+		}
+		
     if (SFRS_TMP)                 /* for SFRS page */
     {
       ENABLE_SFR_PAGE1;
@@ -185,12 +284,12 @@ void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
 
 void main (void) 
 {
-	unsigned char i;
-	unsigned int j;
-	MODIFY_HIRC(HIRC_16);
+		unsigned char i;
+		unsigned int j;
+		MODIFY_HIRC(HIRC_16);
 
-	seconds_counter = 0;
-	last_key = 0;
+		seconds_counter = 0;
+		last_key = 0;
 
     ALL_GPIO_QUASI_MODE; // All GPIO are disabled
 
@@ -217,23 +316,32 @@ void main (void)
     P13 = 1; // Key4
 
     all_digits_off();
-    display_int(123456);
+    display_int(0);
 
     P12 = 0; // Digit 1
-	P01 = 0; // Digit 2
-	P04 = 1; // Digit 3
-	P11 = 1; // Digit 4
-	P03 = 0; // Digit 5
-	P00 = 0; // Digit 6
+		P01 = 0; // Digit 2
+		P04 = 1; // Digit 3
+		P11 = 1; // Digit 4
+		P03 = 0; // Digit 5
+		P00 = 0; // Digit 6
 
-	P10 = 0;
+		P10 = 0;
     for(i = 0; i < 16; i++) {
-	  P06 ^=1;
-	  P10 = (i&2)/2;
-	}
+			P06 ^=1;
+			P10 = (i&2)/2;
+		}
 
-    Timer0_AutoReload_Interrupt_Initial(24,2000);
+		if(P15 && P30) { //new_key == (BUTTON_STOP | BUTTON_START)){
+			// Reset counter in flash
+			buzz_counter = 250;
+			finished = 255;
+		}
+		else {
+			finished = 0;
+		}
+		Timer0_AutoReload_Interrupt_Initial(24,2000);
     ENABLE_GLOBAL_INTERRUPT;
+			
     while(1)
     {
 
@@ -251,13 +359,11 @@ void main (void)
 //	  P14 ^= 1;
       for(j = 0; j < 640; j++) {
     	  ;
-//    	  Timer2_Delay(24000000,4,200,3);
-//		  Timer2_Delay(24000000,4,200,1000);
-
       }
 
       new_key = scan_keys();
       if(new_key != last_key) {
+				DISABLE_GLOBAL_INTERRUPT;
     	  last_key = new_key;
     	  if( new_key) {
 //    		  seconds_counter++;
@@ -265,21 +371,114 @@ void main (void)
     		  P05 = 0; // Buzzer on
     		  switch (new_key) {
     		  case BUTTON_START:
-    			  break;
+					{
+						if(current_state == STATE_NONE) {
+							if(main_time) {								
+								current_state = STATE_WAITING;
+								pre_time = DEFAULT_WAIT_TIME_SEC;
+								counter = ROLL_OVER_VALUE/4;
+								display_int_sec(pre_time);
+							}
+							else {
+						
+								// Read EEPROM
+#if defined __C51__
+								timedata.data_bytes[0] = Read_APROM_BYTE(0x38FB);
+								timedata.data_bytes[1] = Read_APROM_BYTE(0x38FC);
+								timedata.data_bytes[2] = Read_APROM_BYTE(0x38FD);
+								timedata.data_bytes[3] = Read_APROM_BYTE(0x38FE);
+#elif defined __ICC8051__
+								timedata.data_bytes[0] = Read_APROM_BYTE((uint16_t __code *)0x38FB);
+								timedata.data_bytes[1] = Read_APROM_BYTE((uint16_t __code *)0x38FC);
+								timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code *)0x38FD);
+								timedata.data_bytes[3] = Read_APROM_BYTE((uint16_t __code *)0x38FE);
+#elif defined __SDCC__
+								timedata.data_bytes[0] = Read_APROM_BYTE((uint16_t __code*)0x38FB);
+								timedata.data_bytes[1] = Read_APROM_BYTE((uint16_t __code*)0x38FC);
+								timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code*)0x38FD);
+								timedata.data_bytes[3] = Read_APROM_BYTE((uint16_t __code*)0x38FE);
+#endif
+								display_int_sec(timedata.time);
+							}
+						}
+						else if(current_state == STATE_WAITING) {
+							pre_time = 0;
+							current_state = STATE_WORKING;
+							P14 = 1; // Fan is on
+						//P16 = 1; // Relay lampi is on
+						}
+					}						
+   			  break;
     		  case BUTTON_STOP:
+					{
+						if(current_state == STATE_NONE || current_state == STATE_WAITING) {
+							pre_time = 0;
+							main_time = 0;
+							cool_time = 0;
+							current_state = STATE_NONE;
+							display_int_sec(main_time);
+						}
+						else if(current_state == STATE_WORKING) {
+							pre_time = 0;
+							main_time = 0;
+							current_state = STATE_COOLING;
+							cool_time = DEFAULT_COOL_TIME_SEC;
+							display_int_sec(cool_time);
+						}
+					}
 				  break;
     		  case BUTTON_MINUS:
-    			  seconds_counter = seconds_counter + 60;
+					{
+						if(current_state == STATE_NONE && main_time < 30*60) {
+							main_time = main_time + 60;
+							display_int_sec(main_time);
+						}
+					}
 				  break;
-    		  case BUTTON_PLUS:
-    			  if(seconds_counter > 59) {
-    				  seconds_counter = seconds_counter - 60;
+    		  case BUTTON_PLUS:						
+					{
+    			  if(current_state == STATE_NONE && main_time > 59) {
+    				  main_time = main_time - 60;
+							display_int_sec(main_time);
     			  }
+					}
 				  break;
     		  }
-    		  display_int_sec(seconds_counter);
+    		 
     	  }
+				 ENABLE_GLOBAL_INTERRUPT;
       }
+			if(finished) {
+#if defined __C51__
+				timedata.data_bytes[0] = Read_APROM_BYTE(0x38FB);
+				timedata.data_bytes[1] = Read_APROM_BYTE(0x38FC);
+				timedata.data_bytes[2] = Read_APROM_BYTE(0x38FD);
+				timedata.data_bytes[3] = Read_APROM_BYTE(0x38FE);
+#elif defined __ICC8051__
+				timedata.data_bytes[0] = Read_APROM_BYTE((uint16_t __code *)0x38FB);
+				timedata.data_bytes[1] = Read_APROM_BYTE((uint16_t __code *)0x38FC);
+				timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code *)0x38FD);
+				timedata.data_bytes[3] = Read_APROM_BYTE((uint16_t __code *)0x38FE);
+#elif defined __SDCC__
+				timedata.data_bytes[0] = Read_APROM_BYTE((uint16_t __code*)0x38FB);
+				timedata.data_bytes[1] = Read_APROM_BYTE((uint16_t __code*)0x38FC);
+				timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code*)0x38FD);
+				timedata.data_bytes[3] = Read_APROM_BYTE((uint16_t __code*)0x38FE);
+#endif
+				seconds_counter = timedata.time + seconds_counter/60;
+				if(finished == 255 || seconds_counter == 0xFFFFFFFF) {
+					timedata.time = 0;
+				}
+				else {
+					timedata.time = seconds_counter;
+				}
+				Write_DATAFLASH_BYTE (0x38FB,timedata.data_bytes[0]);
+				Write_DATAFLASH_BYTE (0x38FC,timedata.data_bytes[1]);
+				Write_DATAFLASH_BYTE (0x38FD,timedata.data_bytes[2]);
+				Write_DATAFLASH_BYTE (0x38FE,timedata.data_bytes[3]);
+				finished = 0;
+				seconds_counter = 0;
+			}
    }
 
 }
