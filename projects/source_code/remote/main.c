@@ -156,12 +156,12 @@ unsigned char scan_keys(void)
 
 
 void all_digits_off(void) {
-    P12 = 1; // Digit 1
-    P01 = 1; // Digit 2
+    P12 = 0; // Digit 1
+    P01 = 0; // Digit 2
     P04 = 0; // Digit 3
     P11 = 0; // Digit 4
-    P03 = 1; // Digit 5
-    P00 = 1; // Digit 6
+    P03 = 0; // Digit 5
+    P00 = 0; // Digit 6
 }
 
 
@@ -170,8 +170,6 @@ void start_pressed() {
 	
 	if(current_state == STATE_WAITING) {
 		current_state = STATE_WORKING;
-		P14 = 1; // Fan is on
-		//P16 = 1; // Relay lampi is on
 	}
 	if(current_state == STATE_NONE) {
 		if(pre_time) {
@@ -214,48 +212,52 @@ void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
     if(counter > ROLL_OVER_VALUE) {
     	counter = 0;
 			
-    	P14 ^= 1;
+    	//P14 ^= 1;
 			if(current_state != STATE_NONE) {
 				refresh_display = 1;
 				if(pre_time) {
 					pre_time--;
 					if(!pre_time) {
 						if(main_time) {
-							P14 = 1; // Fan is on
-							//P16 = 1; // Relay lampi is on
 							current_state = STATE_WORKING;
+							P14 = 0; // Fan is on
+						  P17 = 1; // Relay lampi is on
 						}
 						else {
 							if(!cool_time) {
 								cool_time = DEFAULT_COOL_TIME_SEC;
 							}
-							P14 = 1; // Fan is on
-							//P16 = 0; // Relay lampi is off
 							current_state = STATE_COOLING;
 						}
 					}
 				}
 				else if(main_time) {
+				  P17 = 1; // Lampi ON
+					P14 = 0; // FAN ON
 					main_time--;
 					seconds_counter++;
 					if(!main_time) {
 						if(!cool_time) {
 							cool_time = DEFAULT_COOL_TIME_SEC;
 						}
-						P14 = 1; // Fan is on
-						//P16 = 0; // Relay lampi is off
+						P17 = 0; // Relay lampi is off
 						current_state = STATE_COOLING;
 					}
 				}
 				else if(cool_time) {
+					P17 = 0; // Lampi OFF
+					P14 = 0; // FAN ON
 					cool_time--;
 					if(!cool_time) {
-						P14 = 0; // Fan is off
-					  //P16 = 0; // Relay lampi is off
+						P14 = 1; // Fan is off
 						// Write data to EEPROM
 						current_state = STATE_NONE;
 						finished = 1;
 					}				
+				}
+				else {
+					P17 = 0; // Lampi OFF
+					P14 = 1; // FAN OFF
 				}
 			}	
     }
@@ -288,6 +290,7 @@ void main (void)
 		unsigned int j;
 		MODIFY_HIRC(HIRC_16);
 
+
 		seconds_counter = 0;
 		last_key = 0;
 
@@ -297,8 +300,6 @@ void main (void)
     P10_PUSHPULL_MODE; // Shift data out
 
     P14_PUSHPULL_MODE; // Led Fan (green)
-//    P16_PUSHPULL_MODE; // Led Lampi (red)
-
 
     // Digits Common Anode
     P01_PUSHPULL_MODE; // Digit 1
@@ -314,16 +315,25 @@ void main (void)
     P30 = 1; // Key2
     P07 = 1; // Key3
     P13 = 1; // Key4
+		
+		P14 = 1; // Fan off
+		
+	  for(j = 0; j < 65535; j++) {
+			P06 ^=1;
+		  P10 = (j&2)/2;
+		}
+		P02_PUSHPULL_MODE; // Real clock
+		P17_PUSHPULL_MODE; // Led Lampi (red)
 
     all_digits_off();
     display_int(0);
 
-    P12 = 0; // Digit 1
-		P01 = 0; // Digit 2
+    P12 = 1; // Digit 1
+		P01 = 1; // Digit 2
 		P04 = 1; // Digit 3
 		P11 = 1; // Digit 4
-		P03 = 0; // Digit 5
-		P00 = 0; // Digit 6
+		P03 = 1; // Digit 5
+		P00 = 1; // Digit 6
 
 		P10 = 0;
     for(i = 0; i < 16; i++) {
@@ -404,8 +414,6 @@ void main (void)
 						else if(current_state == STATE_WAITING) {
 							pre_time = 0;
 							current_state = STATE_WORKING;
-							P14 = 1; // Fan is on
-						//P16 = 1; // Relay lampi is on
 						}
 					}						
    			  break;
@@ -478,6 +486,8 @@ void main (void)
 				Write_DATAFLASH_BYTE (0x38FE,timedata.data_bytes[3]);
 				finished = 0;
 				seconds_counter = 0;
+				P17 = 0; // Lampi OFF
+				P14 = 1; // FAN OFF
 			}
    }
 

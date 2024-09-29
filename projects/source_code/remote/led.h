@@ -24,7 +24,8 @@
 #define U8 unsigned char
 #define S32 long int
 
-#define CLOCK          P06
+// #define CLOCK          P06 // DEBUG
+#define CLOCK          P02 
 #define DATA           P10
 
 void set_display_buf(char *str);

@@ -90,10 +90,10 @@ static const U8 LED_bits[18] = {0xfe,0x30,0xed,0xf9,0x33,0xdb,0xdf,0xf0,0xff,0xf
 void light_up_digit(U8 N){
 	switch(N){
 		case 0:
-			 P01 = 0; // Digit 1
+			 P01 = 1; // Digit 1
 		break;
 		case 1:
-			 P12 = 0; // Digit 2
+			 P12 = 1; // Digit 2
 		break;
 		case 2: 
 			 P04 = 1; // Digit 3
@@ -102,10 +102,10 @@ void light_up_digit(U8 N){
 			 P11 = 1; // Digit 4
 		break;
 		case 4:
-			 P03 = 0; // Digit 5
+			 P03 = 1; // Digit 5
 		break;
 		case 5:
-			 P00 = 0; // Digit 6
+			 P00 = 1; // Digit 6
 		break;
 	}
 }
@@ -113,10 +113,10 @@ void light_up_digit(U8 N){
 void light_off_digit(U8 N){
 	switch(N){
 		case 0:
-			 P01 = 1; // Digit 1
+			 P01 = 0; // Digit 1
 		break;
 		case 1:
-			 P12 = 1; // Digit 2
+			 P12 = 0; // Digit 2
 		break;
 		case 2:
 			 P04 = 0; // Digit 3
@@ -125,10 +125,10 @@ void light_off_digit(U8 N){
 			 P11 = 0; // Digit 4
 		break;
 		case 4:
-			 P03 = 1; // Digit 5
+			 P03 = 0; // Digit 5
 		break;
 		case 5:
-			 P00 = 1; // Digit 6
+			 P00 = 0; // Digit 6
 		break;
 	}
 }
@@ -199,12 +199,10 @@ void set_display_buf(char *str){
 void show_buf_digit(U8 N){
 	U8 L;
 	U8 i;
-	U8 b = 0;
+	U8 b = 1;
 
 	if(N > 5) return;
-	if(N == 2 || N == 3) {
-		b = 1;
-	}
+	
 //	write_letter(display_buffer[N]);
 	L = display_buffer[N] & 0x7f;
 //	all_digits_off();

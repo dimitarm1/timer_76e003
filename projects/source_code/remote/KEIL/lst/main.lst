@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 1   
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
@@ -62,7 +62,7 @@ line level    source
   44          
   45          
   46          #include "led.h"
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 2   
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 2   
 
   47          
   48          #define KEY_0_PRESSED  0x01
@@ -126,7 +126,7 @@ line level    source
  106           *   *     *         (A) PB5   0  1  0  0  1  0  0  0  0  0  0  1  0  1  0  0  1  1
  107           *   ***G***         (G) PC3   1  1  0  0  0  0  0  1  0  0  0  0  1  0  0  0  0  0
  108           *   *     *         (C) PC4   0  0  1  0  0  0  0  0  0  0  0  0  1  0  1  1  1  0
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 3   
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 3   
 
  109           *   E     C         (DP)PC5   1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1
  110           *   *     *   **    (D) PC6   0  1  0  0  1  0  0  1  0  0  1  0  0  0  0  1  1  1
@@ -178,246 +178,256 @@ line level    source
  156          
  157          
  158          void all_digits_off(void) {
- 159   1          P12 = 1; // Digit 1
- 160   1          P01 = 1; // Digit 2
+ 159   1          P12 = 0; // Digit 1
+ 160   1          P01 = 0; // Digit 2
  161   1          P04 = 0; // Digit 3
  162   1          P11 = 0; // Digit 4
- 163   1          P03 = 1; // Digit 5
- 164   1          P00 = 1; // Digit 6
+ 163   1          P03 = 0; // Digit 5
+ 164   1          P00 = 0; // Digit 6
  165   1      }
  166          
  167          
  168          // Unused
  169          void start_pressed() {
  170   1        
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 4   
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 4   
 
  171   1        if(current_state == STATE_WAITING) {
  172   2          current_state = STATE_WORKING;
- 173   2          P14 = 1; // Fan is on
- 174   2          //P16 = 1; // Relay lampi is on
- 175   2        }
- 176   1        if(current_state == STATE_NONE) {
- 177   2          if(pre_time) {
- 178   3            current_state = STATE_WAITING;
- 179   3          }
- 180   2          else {
- 181   3            display_int_sec(timedata.time);
- 182   3          }
- 183   2          return;
- 184   2        }
- 185   1      }
- 186          
- 187          
- 188          #if defined __C51__
- 189          void Timer0_ISR (void) interrupt 1              // vector=0x0B 
- 190          
- 191          #elif defined __ICC8051__
+ 173   2        }
+ 174   1        if(current_state == STATE_NONE) {
+ 175   2          if(pre_time) {
+ 176   3            current_state = STATE_WAITING;
+ 177   3          }
+ 178   2          else {
+ 179   3            display_int_sec(timedata.time);
+ 180   3          }
+ 181   2          return;
+ 182   2        }
+ 183   1      }
+ 184          
+ 185          
+ 186          #if defined __C51__
+ 187          void Timer0_ISR (void) interrupt 1              // vector=0x0B 
+ 188          
+ 189          #elif defined __ICC8051__
               #pragma vector=0x0B                             // Interrupt 1 
               __interrupt void Timer0_ISR(void)
               
               #elif defined __SDCC__
               void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
               #endif
- 198          {
- 199   1          SFRS_TMP = SFRS;              /* for SFRS page */
- 200   1          SFRS = 0;
- 201   1      /* following setting for reload Timer 0 counter */
- 202   1          TH0 = TH0TMP;
- 203   1          TL0 = TL0TMP;
- 204   1      /* following clear flag for next interrupt */
- 205   1          clr_TCON_TF0;
- 206   1          show_next_digit();
- 207   1          counter++;
- 208   1          if(buzz_counter) {
- 209   2            buzz_counter--;
- 210   2            if(!buzz_counter) {
- 211   3              P05 = 1;
- 212   3            }
- 213   2          }
- 214   1          if(counter > ROLL_OVER_VALUE) {
- 215   2            counter = 0;
- 216   2            
- 217   2            P14 ^= 1;
- 218   2            if(current_state != STATE_NONE) {
- 219   3              refresh_display = 1;
- 220   3              if(pre_time) {
- 221   4                pre_time--;
- 222   4                if(!pre_time) {
- 223   5                  if(main_time) {
- 224   6                    P14 = 1; // Fan is on
- 225   6                    //P16 = 1; // Relay lampi is on
- 226   6                    current_state = STATE_WORKING;
- 227   6                  }
- 228   5                  else {
- 229   6                    if(!cool_time) {
- 230   7                      cool_time = DEFAULT_COOL_TIME_SEC;
- 231   7                    }
- 232   6                    P14 = 1; // Fan is on
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 5   
+ 196          {
+ 197   1          SFRS_TMP = SFRS;              /* for SFRS page */
+ 198   1          SFRS = 0;
+ 199   1      /* following setting for reload Timer 0 counter */
+ 200   1          TH0 = TH0TMP;
+ 201   1          TL0 = TL0TMP;
+ 202   1      /* following clear flag for next interrupt */
+ 203   1          clr_TCON_TF0;
+ 204   1          show_next_digit();
+ 205   1          counter++;
+ 206   1          if(buzz_counter) {
+ 207   2            buzz_counter--;
+ 208   2            if(!buzz_counter) {
+ 209   3              P05 = 1;
+ 210   3            }
+ 211   2          }
+ 212   1          if(counter > ROLL_OVER_VALUE) {
+ 213   2            counter = 0;
+ 214   2            
+ 215   2            //P14 ^= 1;
+ 216   2            if(current_state != STATE_NONE) {
+ 217   3              refresh_display = 1;
+ 218   3              if(pre_time) {
+ 219   4                pre_time--;
+ 220   4                if(!pre_time) {
+ 221   5                  if(main_time) {
+ 222   6                    current_state = STATE_WORKING;
+ 223   6                    P14 = 0; // Fan is on
+ 224   6                    P17 = 1; // Relay lampi is on
+ 225   6                  }
+ 226   5                  else {
+ 227   6                    if(!cool_time) {
+ 228   7                      cool_time = DEFAULT_COOL_TIME_SEC;
+ 229   7                    }
+ 230   6                    current_state = STATE_COOLING;
+ 231   6                  }
+ 232   5                }
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 5   
 
- 233   6                    //P16 = 0; // Relay lampi is off
- 234   6                    current_state = STATE_COOLING;
- 235   6                  }
- 236   5                }
- 237   4              }
- 238   3              else if(main_time) {
- 239   4                main_time--;
- 240   4                seconds_counter++;
- 241   4                if(!main_time) {
- 242   5                  if(!cool_time) {
- 243   6                    cool_time = DEFAULT_COOL_TIME_SEC;
- 244   6                  }
- 245   5                  P14 = 1; // Fan is on
- 246   5                  //P16 = 0; // Relay lampi is off
- 247   5                  current_state = STATE_COOLING;
- 248   5                }
- 249   4              }
- 250   3              else if(cool_time) {
- 251   4                cool_time--;
- 252   4                if(!cool_time) {
- 253   5                  P14 = 0; // Fan is off
- 254   5                  //P16 = 0; // Relay lampi is off
- 255   5                  // Write data to EEPROM
- 256   5                  current_state = STATE_NONE;
- 257   5                  finished = 1;
- 258   5                }       
- 259   4              }
- 260   3            } 
- 261   2          }
- 262   1          if(refresh_display){
- 263   2            refresh_display = 0;
- 264   2            if(current_state == STATE_WORKING){
- 265   3              display_int_sec(main_time);
- 266   3            }
- 267   2            else if(current_state == STATE_WAITING){
- 268   3              display_int_sec(pre_time);
- 269   3            }
- 270   2            else if(current_state == STATE_COOLING){
- 271   3              display_int_sec(cool_time);
- 272   3            }
- 273   2            else if(current_state == STATE_NONE){
- 274   3              display_int_sec(0);
- 275   3            }
- 276   2          }
- 277   1          
- 278   1          if (SFRS_TMP)                 /* for SFRS page */
- 279   1          {
- 280   2            ENABLE_SFR_PAGE1;
- 281   2          }
- 282   1      }
- 283          
- 284          
- 285          void main (void) 
- 286          {
- 287   1          unsigned char i;
- 288   1          unsigned int j;
- 289   1          MODIFY_HIRC(HIRC_16);
- 290   1      
- 291   1          seconds_counter = 0;
- 292   1          last_key = 0;
+ 233   4              }
+ 234   3              else if(main_time) {
+ 235   4                P17 = 1; // Lampi ON
+ 236   4                P14 = 0; // FAN ON
+ 237   4                main_time--;
+ 238   4                seconds_counter++;
+ 239   4                if(!main_time) {
+ 240   5                  if(!cool_time) {
+ 241   6                    cool_time = DEFAULT_COOL_TIME_SEC;
+ 242   6                  }
+ 243   5                  P17 = 0; // Relay lampi is off
+ 244   5                  current_state = STATE_COOLING;
+ 245   5                }
+ 246   4              }
+ 247   3              else if(cool_time) {
+ 248   4                P17 = 0; // Lampi OFF
+ 249   4                P14 = 0; // FAN ON
+ 250   4                cool_time--;
+ 251   4                if(!cool_time) {
+ 252   5                  P14 = 1; // Fan is off
+ 253   5                  // Write data to EEPROM
+ 254   5                  current_state = STATE_NONE;
+ 255   5                  finished = 1;
+ 256   5                }       
+ 257   4              }
+ 258   3              else {
+ 259   4                P17 = 0; // Lampi OFF
+ 260   4                P14 = 1; // FAN OFF
+ 261   4              }
+ 262   3            } 
+ 263   2          }
+ 264   1          if(refresh_display){
+ 265   2            refresh_display = 0;
+ 266   2            if(current_state == STATE_WORKING){
+ 267   3              display_int_sec(main_time);
+ 268   3            }
+ 269   2            else if(current_state == STATE_WAITING){
+ 270   3              display_int_sec(pre_time);
+ 271   3            }
+ 272   2            else if(current_state == STATE_COOLING){
+ 273   3              display_int_sec(cool_time);
+ 274   3            }
+ 275   2            else if(current_state == STATE_NONE){
+ 276   3              display_int_sec(0);
+ 277   3            }
+ 278   2          }
+ 279   1          
+ 280   1          if (SFRS_TMP)                 /* for SFRS page */
+ 281   1          {
+ 282   2            ENABLE_SFR_PAGE1;
+ 283   2          }
+ 284   1      }
+ 285          
+ 286          
+ 287          void main (void) 
+ 288          {
+ 289   1          unsigned char i;
+ 290   1          unsigned int j;
+ 291   1          MODIFY_HIRC(HIRC_16);
+ 292   1      
  293   1      
- 294   1          ALL_GPIO_QUASI_MODE; // All GPIO are disabled
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 6   
+ 294   1          seconds_counter = 0;
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 6   
 
- 295   1      
- 296   1          P06_PUSHPULL_MODE; // Temporary serial clock
- 297   1          P10_PUSHPULL_MODE; // Shift data out
+ 295   1          last_key = 0;
+ 296   1      
+ 297   1          ALL_GPIO_QUASI_MODE; // All GPIO are disabled
  298   1      
- 299   1          P14_PUSHPULL_MODE; // Led Fan (green)
- 300   1      //    P16_PUSHPULL_MODE; // Led Lampi (red)
+ 299   1          P06_PUSHPULL_MODE; // Temporary serial clock
+ 300   1          P10_PUSHPULL_MODE; // Shift data out
  301   1      
- 302   1      
- 303   1          // Digits Common Anode
- 304   1          P01_PUSHPULL_MODE; // Digit 1
- 305   1          P12_PUSHPULL_MODE; // Digit 2
- 306   1          P04_PUSHPULL_MODE; // Digit 3
- 307   1          P11_PUSHPULL_MODE; // Digit 4
- 308   1          P03_PUSHPULL_MODE; // Digit 5
- 309   1          P00_PUSHPULL_MODE; // Digit 6
- 310   1      
- 311   1          P05_PUSHPULL_MODE; // Buzzer
- 312   1          // Keyboard
- 313   1          P15 = 1; // Key1
- 314   1          P30 = 1; // Key2
- 315   1          P07 = 1; // Key3
- 316   1          P13 = 1; // Key4
- 317   1      
- 318   1          all_digits_off();
- 319   1          display_int(0);
- 320   1      
- 321   1          P12 = 0; // Digit 1
- 322   1          P01 = 0; // Digit 2
- 323   1          P04 = 1; // Digit 3
- 324   1          P11 = 1; // Digit 4
- 325   1          P03 = 0; // Digit 5
- 326   1          P00 = 0; // Digit 6
+ 302   1          P14_PUSHPULL_MODE; // Led Fan (green)
+ 303   1      
+ 304   1          // Digits Common Anode
+ 305   1          P01_PUSHPULL_MODE; // Digit 1
+ 306   1          P12_PUSHPULL_MODE; // Digit 2
+ 307   1          P04_PUSHPULL_MODE; // Digit 3
+ 308   1          P11_PUSHPULL_MODE; // Digit 4
+ 309   1          P03_PUSHPULL_MODE; // Digit 5
+ 310   1          P00_PUSHPULL_MODE; // Digit 6
+ 311   1      
+ 312   1          P05_PUSHPULL_MODE; // Buzzer
+ 313   1          // Keyboard
+ 314   1          P15 = 1; // Key1
+ 315   1          P30 = 1; // Key2
+ 316   1          P07 = 1; // Key3
+ 317   1          P13 = 1; // Key4
+ 318   1          
+ 319   1          P14 = 1; // Fan off
+ 320   1          
+ 321   1          for(j = 0; j < 65535; j++) {
+ 322   2            P06 ^=1;
+ 323   2            P10 = (j&2)/2;
+ 324   2          }
+ 325   1          P02_PUSHPULL_MODE; // Real clock
+ 326   1          P17_PUSHPULL_MODE; // Led Lampi (red)
  327   1      
- 328   1          P10 = 0;
- 329   1          for(i = 0; i < 16; i++) {
- 330   2            P06 ^=1;
- 331   2            P10 = (i&2)/2;
- 332   2          }
- 333   1      
- 334   1          if(P15 && P30) { //new_key == (BUTTON_STOP | BUTTON_START)){
- 335   2            // Reset counter in flash
- 336   2            buzz_counter = 250;
- 337   2            finished = 255;
- 338   2          }
- 339   1          else {
- 340   2            finished = 0;
- 341   2          }
- 342   1          Timer0_AutoReload_Interrupt_Initial(24,2000);
- 343   1          ENABLE_GLOBAL_INTERRUPT;
- 344   1            
- 345   1          while(1)
- 346   1          {
- 347   2      
- 348   2      
- 349   2      //      display_int(counter++);
- 350   2      
- 351   2      //    P0 = ~P0;
- 352   2      //    P1 = ~P1;
- 353   2      //    P30 ^= 1;
- 354   2      //      for(i = 0; i < 16; i++) {
- 355   2      //        P06 ^=1;
- 356   2      //      }
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 7   
+ 328   1          all_digits_off();
+ 329   1          display_int(0);
+ 330   1      
+ 331   1          P12 = 1; // Digit 1
+ 332   1          P01 = 1; // Digit 2
+ 333   1          P04 = 1; // Digit 3
+ 334   1          P11 = 1; // Digit 4
+ 335   1          P03 = 1; // Digit 5
+ 336   1          P00 = 1; // Digit 6
+ 337   1      
+ 338   1          P10 = 0;
+ 339   1          for(i = 0; i < 16; i++) {
+ 340   2            P06 ^=1;
+ 341   2            P10 = (i&2)/2;
+ 342   2          }
+ 343   1      
+ 344   1          if(P15 && P30) { //new_key == (BUTTON_STOP | BUTTON_START)){
+ 345   2            // Reset counter in flash
+ 346   2            buzz_counter = 250;
+ 347   2            finished = 255;
+ 348   2          }
+ 349   1          else {
+ 350   2            finished = 0;
+ 351   2          }
+ 352   1          Timer0_AutoReload_Interrupt_Initial(24,2000);
+ 353   1          ENABLE_GLOBAL_INTERRUPT;
+ 354   1            
+ 355   1          while(1)
+ 356   1          {
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 7   
 
- 357   2      //    P10 ^= 1;
- 358   2      //    P04 ^= 1;
- 359   2      //    P14 ^= 1;
- 360   2            for(j = 0; j < 640; j++) {
- 361   3              ;
- 362   3            }
- 363   2      
- 364   2            new_key = scan_keys();
- 365   2            if(new_key != last_key) {
- 366   3              DISABLE_GLOBAL_INTERRUPT;
- 367   3              last_key = new_key;
- 368   3              if( new_key) {
- 369   4      //          seconds_counter++;
- 370   4                buzz_counter = 25;
- 371   4                P05 = 0; // Buzzer on
- 372   4                switch (new_key) {
- 373   5                case BUTTON_START:
- 374   5                {
- 375   6                  if(current_state == STATE_NONE) {
- 376   7                    if(main_time) {               
- 377   8                      current_state = STATE_WAITING;
- 378   8                      pre_time = DEFAULT_WAIT_TIME_SEC;
- 379   8                      counter = ROLL_OVER_VALUE/4;
- 380   8                      display_int_sec(pre_time);
- 381   8                    }
- 382   7                    else {
- 383   8                  
- 384   8                      // Read EEPROM
- 385   8      #if defined __C51__
- 386   8                      timedata.data_bytes[0] = Read_APROM_BYTE(0x38FB);
- 387   8                      timedata.data_bytes[1] = Read_APROM_BYTE(0x38FC);
- 388   8                      timedata.data_bytes[2] = Read_APROM_BYTE(0x38FD);
- 389   8                      timedata.data_bytes[3] = Read_APROM_BYTE(0x38FE);
- 390   8      #elif defined __ICC8051__
+ 357   2      
+ 358   2      
+ 359   2      //      display_int(counter++);
+ 360   2      
+ 361   2      //    P0 = ~P0;
+ 362   2      //    P1 = ~P1;
+ 363   2      //    P30 ^= 1;
+ 364   2      //      for(i = 0; i < 16; i++) {
+ 365   2      //        P06 ^=1;
+ 366   2      //      }
+ 367   2      //    P10 ^= 1;
+ 368   2      //    P04 ^= 1;
+ 369   2      //    P14 ^= 1;
+ 370   2            for(j = 0; j < 640; j++) {
+ 371   3              ;
+ 372   3            }
+ 373   2      
+ 374   2            new_key = scan_keys();
+ 375   2            if(new_key != last_key) {
+ 376   3              DISABLE_GLOBAL_INTERRUPT;
+ 377   3              last_key = new_key;
+ 378   3              if( new_key) {
+ 379   4      //          seconds_counter++;
+ 380   4                buzz_counter = 25;
+ 381   4                P05 = 0; // Buzzer on
+ 382   4                switch (new_key) {
+ 383   5                case BUTTON_START:
+ 384   5                {
+ 385   6                  if(current_state == STATE_NONE) {
+ 386   7                    if(main_time) {               
+ 387   8                      current_state = STATE_WAITING;
+ 388   8                      pre_time = DEFAULT_WAIT_TIME_SEC;
+ 389   8                      counter = ROLL_OVER_VALUE/4;
+ 390   8                      display_int_sec(pre_time);
+ 391   8                    }
+ 392   7                    else {
+ 393   8                  
+ 394   8                      // Read EEPROM
+ 395   8      #if defined __C51__
+ 396   8                      timedata.data_bytes[0] = Read_APROM_BYTE(0x38FB);
+ 397   8                      timedata.data_bytes[1] = Read_APROM_BYTE(0x38FC);
+ 398   8                      timedata.data_bytes[2] = Read_APROM_BYTE(0x38FD);
+ 399   8                      timedata.data_bytes[3] = Read_APROM_BYTE(0x38FE);
+ 400   8      #elif defined __ICC8051__
                               timedata.data_bytes[0] = Read_APROM_BYTE((uint16_t __code *)0x38FB);
                               timedata.data_bytes[1] = Read_APROM_BYTE((uint16_t __code *)0x38FC);
                               timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code *)0x38FD);
@@ -428,65 +438,63 @@ line level    source
                               timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code*)0x38FD);
                               timedata.data_bytes[3] = Read_APROM_BYTE((uint16_t __code*)0x38FE);
               #endif
- 401   8                      display_int_sec(timedata.time);
- 402   8                    }
- 403   7                  }
- 404   6                  else if(current_state == STATE_WAITING) {
- 405   7                    pre_time = 0;
- 406   7                    current_state = STATE_WORKING;
- 407   7                    P14 = 1; // Fan is on
- 408   7                  //P16 = 1; // Relay lampi is on
- 409   7                  }
- 410   6                }           
- 411   5                break;
- 412   5                case BUTTON_STOP:
- 413   5                {
- 414   6                  if(current_state == STATE_NONE || current_state == STATE_WAITING) {
+ 411   8                      display_int_sec(timedata.time);
+ 412   8                    }
+ 413   7                  }
+ 414   6                  else if(current_state == STATE_WAITING) {
  415   7                    pre_time = 0;
- 416   7                    main_time = 0;
- 417   7                    cool_time = 0;
- 418   7                    current_state = STATE_NONE;
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 8   
+ 416   7                    current_state = STATE_WORKING;
+ 417   7                  }
+ 418   6                }           
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 8   
 
- 419   7                    display_int_sec(main_time);
- 420   7                  }
- 421   6                  else if(current_state == STATE_WORKING) {
- 422   7                    pre_time = 0;
- 423   7                    main_time = 0;
- 424   7                    current_state = STATE_COOLING;
- 425   7                    cool_time = DEFAULT_COOL_TIME_SEC;
- 426   7                    display_int_sec(cool_time);
- 427   7                  }
- 428   6                }
- 429   5                break;
- 430   5                case BUTTON_MINUS:
- 431   5                {
- 432   6                  if(current_state == STATE_NONE && main_time < 30*60) {
- 433   7                    main_time = main_time + 60;
- 434   7                    display_int_sec(main_time);
+ 419   5                break;
+ 420   5                case BUTTON_STOP:
+ 421   5                {
+ 422   6                  if(current_state == STATE_NONE || current_state == STATE_WAITING) {
+ 423   7                    pre_time = 0;
+ 424   7                    main_time = 0;
+ 425   7                    cool_time = 0;
+ 426   7                    current_state = STATE_NONE;
+ 427   7                    display_int_sec(main_time);
+ 428   7                  }
+ 429   6                  else if(current_state == STATE_WORKING) {
+ 430   7                    pre_time = 0;
+ 431   7                    main_time = 0;
+ 432   7                    current_state = STATE_COOLING;
+ 433   7                    cool_time = DEFAULT_COOL_TIME_SEC;
+ 434   7                    display_int_sec(cool_time);
  435   7                  }
  436   6                }
  437   5                break;
- 438   5                case BUTTON_PLUS:           
+ 438   5                case BUTTON_MINUS:
  439   5                {
- 440   6                  if(current_state == STATE_NONE && main_time > 59) {
- 441   7                    main_time = main_time - 60;
+ 440   6                  if(current_state == STATE_NONE && main_time < 30*60) {
+ 441   7                    main_time = main_time + 60;
  442   7                    display_int_sec(main_time);
  443   7                  }
  444   6                }
  445   5                break;
- 446   5                }
- 447   4               
- 448   4              }
- 449   3               ENABLE_GLOBAL_INTERRUPT;
- 450   3            }
- 451   2            if(finished) {
- 452   3      #if defined __C51__
- 453   3              timedata.data_bytes[0] = Read_APROM_BYTE(0x38FB);
- 454   3              timedata.data_bytes[1] = Read_APROM_BYTE(0x38FC);
- 455   3              timedata.data_bytes[2] = Read_APROM_BYTE(0x38FD);
- 456   3              timedata.data_bytes[3] = Read_APROM_BYTE(0x38FE);
- 457   3      #elif defined __ICC8051__
+ 446   5                case BUTTON_PLUS:           
+ 447   5                {
+ 448   6                  if(current_state == STATE_NONE && main_time > 59) {
+ 449   7                    main_time = main_time - 60;
+ 450   7                    display_int_sec(main_time);
+ 451   7                  }
+ 452   6                }
+ 453   5                break;
+ 454   5                }
+ 455   4               
+ 456   4              }
+ 457   3               ENABLE_GLOBAL_INTERRUPT;
+ 458   3            }
+ 459   2            if(finished) {
+ 460   3      #if defined __C51__
+ 461   3              timedata.data_bytes[0] = Read_APROM_BYTE(0x38FB);
+ 462   3              timedata.data_bytes[1] = Read_APROM_BYTE(0x38FC);
+ 463   3              timedata.data_bytes[2] = Read_APROM_BYTE(0x38FD);
+ 464   3              timedata.data_bytes[3] = Read_APROM_BYTE(0x38FE);
+ 465   3      #elif defined __ICC8051__
                       timedata.data_bytes[0] = Read_APROM_BYTE((uint16_t __code *)0x38FB);
                       timedata.data_bytes[1] = Read_APROM_BYTE((uint16_t __code *)0x38FC);
                       timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code *)0x38FD);
@@ -497,32 +505,34 @@ line level    source
                       timedata.data_bytes[2] = Read_APROM_BYTE((uint16_t __code*)0x38FD);
                       timedata.data_bytes[3] = Read_APROM_BYTE((uint16_t __code*)0x38FE);
               #endif
- 468   3              seconds_counter = timedata.time + seconds_counter/60;
- 469   3              if(finished == 255 || seconds_counter == 0xFFFFFFFF) {
- 470   4                timedata.time = 0;
- 471   4              }
- 472   3              else {
- 473   4                timedata.time = seconds_counter;
- 474   4              }
- 475   3              Write_DATAFLASH_BYTE (0x38FB,timedata.data_bytes[0]);
- 476   3              Write_DATAFLASH_BYTE (0x38FC,timedata.data_bytes[1]);
- 477   3              Write_DATAFLASH_BYTE (0x38FD,timedata.data_bytes[2]);
- 478   3              Write_DATAFLASH_BYTE (0x38FE,timedata.data_bytes[3]);
- 479   3              finished = 0;
- 480   3              seconds_counter = 0;
-C51 COMPILER V9.60.7.0   MAIN                                                              09/23/2024 18:19:48 PAGE 9   
+ 476   3              seconds_counter = timedata.time + seconds_counter/60;
+ 477   3              if(finished == 255 || seconds_counter == 0xFFFFFFFF) {
+ 478   4                timedata.time = 0;
+ 479   4              }
+ 480   3              else {
+C51 COMPILER V9.60.7.0   MAIN                                                              09/29/2024 21:23:52 PAGE 9   
 
- 481   3            }
- 482   2         }
- 483   1      
- 484   1      }
- 485          
- 486          
- 487          
+ 481   4                timedata.time = seconds_counter;
+ 482   4              }
+ 483   3              Write_DATAFLASH_BYTE (0x38FB,timedata.data_bytes[0]);
+ 484   3              Write_DATAFLASH_BYTE (0x38FC,timedata.data_bytes[1]);
+ 485   3              Write_DATAFLASH_BYTE (0x38FD,timedata.data_bytes[2]);
+ 486   3              Write_DATAFLASH_BYTE (0x38FE,timedata.data_bytes[3]);
+ 487   3              finished = 0;
+ 488   3              seconds_counter = 0;
+ 489   3              P17 = 0; // Lampi OFF
+ 490   3              P14 = 1; // FAN OFF
+ 491   3            }
+ 492   2         }
+ 493   1      
+ 494   1      }
+ 495          
+ 496          
+ 497          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1817    ----
+   CODE SIZE        =   1918    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =     34    ----
    PDATA SIZE       =   ----    ----

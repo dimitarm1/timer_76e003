@@ -2,6 +2,7 @@
 .settings
 Debug/
 Release/
+projects/source_code/remote/KEIL/Output/
 *~
 *.d
 *.o
