@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   LED                                                               09/29/2024 19:19:16 PAGE 1   
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE LED
@@ -62,7 +62,7 @@ line level    source
   50          static U8 PC_bits[18] = {0x40,0x40,0x80,0,0,0x20,0x20,0x40,0,0,0,0x20,0xe0,0,0xa0,0xa0,0xa0,0x20};
   51          // PD, mask: 0x0e, PD1: 0x02, PD2: 0x04, PD3: 0x08
   52          #define PD_BLANK 0x0e
-C51 COMPILER V9.60.7.0   LED                                                               09/29/2024 19:19:16 PAGE 2   
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 2   
 
   53          static U8 PD_bits[18] = {0x08,0x0e,0x08,0x0a,0x0e,0x0a,0x08,0x0e,0x08,0x0a,0x0c,0x8,0x08,0x08,0x08,0x0c,0x
              -0e,0x0c};
@@ -105,247 +105,285 @@ line level    source
   90          void light_up_digit(U8 N){
   91   1        switch(N){
   92   2          case 0:
-  93   2             P01 = 1; // Digit 1
-  94   2          break;
-  95   2          case 1:
-  96   2             P12 = 1; // Digit 2
-  97   2          break;
-  98   2          case 2: 
-  99   2             P04 = 1; // Digit 3
- 100   2          break;
- 101   2          case 3:
- 102   2             P11 = 1; // Digit 4
- 103   2          break;
- 104   2          case 4:
- 105   2             P03 = 1; // Digit 5
- 106   2          break;
- 107   2          case 5:
- 108   2             P00 = 1; // Digit 6
- 109   2          break;
- 110   2        }
- 111   1      }
- 112          
- 113          void light_off_digit(U8 N){
-C51 COMPILER V9.60.7.0   LED                                                               09/29/2024 19:19:16 PAGE 3   
+  93   2            #ifndef INVERT_SMALL_DIGITS 
+                     P01 = 1; // Digit 1
+                    #else
+  96   2             P01 = 0; // Digit 1
+  97   2            #endif
+  98   2          break;
+  99   2          case 1:
+ 100   2            #ifndef INVERT_SMALL_DIGITS 
+                     P12 = 1; // Digit 2
+                    #else
+ 103   2             P12 = 0; // Digit 2
+ 104   2            #endif
+ 105   2          break;
+ 106   2          case 2: 
+ 107   2             P04 = 1; // Digit 3
+ 108   2          break;
+ 109   2          case 3:
+ 110   2             P11 = 1; // Digit 4
+ 111   2          break;
+ 112   2          case 4:
+ 113   2            #ifndef INVERT_SMALL_DIGITS 
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 3   
 
- 114   1        switch(N){
- 115   2          case 0:
- 116   2             P01 = 0; // Digit 1
- 117   2          break;
- 118   2          case 1:
- 119   2             P12 = 0; // Digit 2
- 120   2          break;
- 121   2          case 2:
- 122   2             P04 = 0; // Digit 3
- 123   2          break;
- 124   2          case 3:
- 125   2             P11 = 0; // Digit 4
- 126   2          break;
- 127   2          case 4:
- 128   2             P03 = 0; // Digit 5
- 129   2          break;
- 130   2          case 5:
- 131   2             P00 = 0; // Digit 6
- 132   2          break;
- 133   2        }
- 134   1      }
- 135          
- 136          
- 137          static U8 display_buffer[6] = {' ',' ',' ',' ',' ',' '}; // blank by default
- 138          U8 N_current = 0; // current digit to display
- 139          
- 140          /**
- 141           * fills buffer to display
- 142           * @param str - string to display, contains "0..f" for digits, " " for space, "." for DP
- 143           *        for example: " 1.22" or "h1ab" (something like "0...abc" equivalent to "0.abc"
- 144           *        register independent!
- 145           *      any other letter would be omitted
- 146           *      if NULL - fill buffer with spaces
- 147           */
- 148          void set_display_buf(char *str){
- 149   1        U8 B[4];
- 150   1        signed char ch, M = 0, i;
- 151   1        //N_current = 0; // refresh current digit number
- 152   1        // empty buffer
- 153   1        for(i = 0; i < 6; i++)
- 154   1          display_buffer[i] = ' ';
- 155   1        if(!str) return;
- 156   1        i = 0;
- 157   1        for(;(ch = *str) && (i < 6); str++){
- 158   2          M = 0;
- 159   2          if(ch > '/' && ch < ':'){ // digit
- 160   3            M = '0';
- 161   3          }else if(ch > '`' & ch < 'g'){ // a..f
- 162   3            M = 'a' - 10;
- 163   3          }else if(ch > '@' & ch < 'G'){ // A..F
- 164   3            M = 'A' - 10;
- 165   3          }else if(ch == '-'){ // minus
- 166   3            M = '-' - 16;
- 167   3          }else if(ch == 'h'){ // hex
- 168   3            M = 'h' - 17;
- 169   3          }else if(ch == 'H'){ // hex
- 170   3            M = 'H' - 17;
- 171   3          }else if(ch == '.'){ // DP, set it to previous char
- 172   3            if(i == 0){ // word starts from '.' - make a space with point
- 173   4              B[0] = 0xff;
- 174   4            }else{ // set point for previous character
- 175   4              B[i-1] |= 0x80;
-C51 COMPILER V9.60.7.0   LED                                                               09/29/2024 19:19:16 PAGE 4   
+                     P03 = 1; // Digit 5
+                    #else
+ 116   2             P03 = 0; // Digit 5
+ 117   2            #endif
+ 118   2          break;
+ 119   2          case 5:
+ 120   2            #ifndef INVERT_SMALL_DIGITS 
+                     P00 = 1; // Digit 6
+                    #else
+ 123   2             P00 = 0; // Digit 6
+ 124   2            #endif
+ 125   2          break;
+ 126   2        }
+ 127   1      }
+ 128          
+ 129          void light_off_digit(U8 N){
+ 130   1        switch(N){
+ 131   2          case 0:
+ 132   2            #ifndef INVERT_SMALL_DIGITS 
+                     P01 = 0; // Digit 1
+                    #else
+ 135   2             P01 = 1; // Digit 1
+ 136   2            #endif
+ 137   2          break;
+ 138   2          case 1:
+ 139   2            #ifndef INVERT_SMALL_DIGITS 
+                     P12 = 0; // Digit 2
+                    #else
+ 142   2             P12 = 1; // Digit 2
+ 143   2            #endif
+ 144   2          break;
+ 145   2          case 2:
+ 146   2             P04 = 0; // Digit 3
+ 147   2          break;
+ 148   2          case 3:
+ 149   2             P11 = 0; // Digit 4
+ 150   2          break;
+ 151   2          case 4:
+ 152   2            #ifndef INVERT_SMALL_DIGITS 
+                     P03 = 0; // Digit 5
+                    #else
+ 155   2             P03 = 1; // Digit 5
+ 156   2            #endif
+ 157   2          break;
+ 158   2          case 5:
+ 159   2            #ifndef INVERT_SMALL_DIGITS 
+                     P00 = 0; // Digit 6
+                    #else
+ 162   2             P00 = 1; // Digit 6
+ 163   2            #endif
+ 164   2          break;
+ 165   2        }
+ 166   1      }
+ 167          
+ 168          
+ 169          static U8 display_buffer[6] = {' ',' ',' ',' ',' ',' '}; // blank by default
+ 170          U8 N_current = 0; // current digit to display
+ 171          
+ 172          /**
+ 173           * fills buffer to display
+ 174           * @param str - string to display, contains "0..f" for digits, " " for space, "." for DP
+ 175           *        for example: " 1.22" or "h1ab" (something like "0...abc" equivalent to "0.abc"
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 4   
 
- 176   4            }
- 177   3            continue;
- 178   3          }else if(ch != ' '){ // bad character - continue
- 179   3            continue;
- 180   3          }
- 181   2          B[i] = ch - M;
- 182   2          i++;
- 183   2        }
- 184   1        // now make align to right
- 185   1        ch = 5;
- 186   1        for(M = i-1; M > -1; M--, ch--){
- 187   2          display_buffer[ch] = B[M];
- 188   2        }
- 189   1      }
- 190          
- 191          /**
- 192           * Show Nth digit of buffer (function ran by timer)
- 193           * @param N - number of digit in buffer (0..3)
- 194           */
- 195          /**
- 196          * Setup for writing a letter
- 197          * @param ltr - letter (0..17 for 0..F, - or h | 0x80 for DP, any other value for 'space')
- 198          */
- 199          void show_buf_digit(U8 N){
- 200   1        U8 L;
- 201   1        U8 i;
- 202   1        U8 b = 1;
- 203   1      
- 204   1        if(N > 5) return;
- 205   1        
- 206   1      //  write_letter(display_buffer[N]);
- 207   1        L = display_buffer[N] & 0x7f;
- 208   1      //  all_digits_off();
- 209   1        if(L < 18){ // letter
- 210   2          L = LED_bits[L];
- 211   2        }else{ // space
- 212   2          L = 0;
- 213   2        }
- 214   1        if(N == 0) {
- 215   2          light_off_digit(5);
- 216   2        }
- 217   1        else {
- 218   2          light_off_digit(N-1);
- 219   2        }
- 220   1        for (i = 0; i<7; i++)
- 221   1        {
- 222   2          CLOCK = 0; // Clear CLK
- 223   2      //    _asm("nop");
- 224   2      //    _asm("nop");
- 225   2          if((L>>i) & 1)
- 226   2          {
- 227   3            DATA = !b; // Set LED on
- 228   3          }
- 229   2          else
- 230   2          {
- 231   3            DATA = b; // Set LED OFF
- 232   3          }
- 233   2          CLOCK = 1; // Set CLK - rising edge transfers data
- 234   2      //    _asm("nop");
- 235   2      //    _asm("nop");
- 236   2        }
- 237   1      
-C51 COMPILER V9.60.7.0   LED                                                               09/29/2024 19:19:16 PAGE 5   
+ 176           *        register independent!
+ 177           *      any other letter would be omitted
+ 178           *      if NULL - fill buffer with spaces
+ 179           */
+ 180          void set_display_buf(char *str){
+ 181   1        U8 B[4];
+ 182   1        signed char ch, M = 0, i;
+ 183   1        //N_current = 0; // refresh current digit number
+ 184   1        // empty buffer
+ 185   1        for(i = 0; i < 6; i++)
+ 186   1          display_buffer[i] = ' ';
+ 187   1        if(!str) return;
+ 188   1        i = 0;
+ 189   1        for(;(ch = *str) && (i < 6); str++){
+ 190   2          M = 0;
+ 191   2          if(ch > '/' && ch < ':'){ // digit
+ 192   3            M = '0';
+ 193   3          }else if(ch > '`' & ch < 'g'){ // a..f
+ 194   3            M = 'a' - 10;
+ 195   3          }else if(ch > '@' & ch < 'G'){ // A..F
+ 196   3            M = 'A' - 10;
+ 197   3          }else if(ch == '-'){ // minus
+ 198   3            M = '-' - 16;
+ 199   3          }else if(ch == 'h'){ // hex
+ 200   3            M = 'h' - 17;
+ 201   3          }else if(ch == 'H'){ // hex
+ 202   3            M = 'H' - 17;
+ 203   3          }else if(ch == '.'){ // DP, set it to previous char
+ 204   3            if(i == 0){ // word starts from '.' - make a space with point
+ 205   4              B[0] = 0xff;
+ 206   4            }else{ // set point for previous character
+ 207   4              B[i-1] |= 0x80;
+ 208   4            }
+ 209   3            continue;
+ 210   3          }else if(ch != ' '){ // bad character - continue
+ 211   3            continue;
+ 212   3          }
+ 213   2          B[i] = ch - M;
+ 214   2          i++;
+ 215   2        }
+ 216   1        // now make align to right
+ 217   1        ch = 5;
+ 218   1        for(M = i-1; M > -1; M--, ch--){
+ 219   2          display_buffer[ch] = B[M];
+ 220   2        }
+ 221   1      }
+ 222          
+ 223          /**
+ 224           * Show Nth digit of buffer (function ran by timer)
+ 225           * @param N - number of digit in buffer (0..3)
+ 226           */
+ 227          /**
+ 228          * Setup for writing a letter
+ 229          * @param ltr - letter (0..17 for 0..F, - or h | 0x80 for DP, any other value for 'space')
+ 230          */
+ 231          void show_buf_digit(U8 N){
+ 232   1        U8 L;
+ 233   1        U8 i;
+ 234   1        U8 b = 1;
+ 235   1      
+ 236   1        if(N > 5) return;
+ 237   1        
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 5   
 
- 238   1        light_up_digit(N);
- 239   1      }
- 240          
- 241          /**
- 242           * Show next digit - function calls from main() by some system time value amount
- 243           */
- 244          void show_next_digit(void){
- 245   1        show_buf_digit(N_current++);
- 246   1        if(N_current > 5) N_current = 0;
- 247   1      }
- 248          
- 249          
- 250          
- 251          /**
- 252           * convert integer value in into string and display it
- 253           * @param i - value to display, -999999 <= i <= 999999, if wrong, displays "---E"
- 254           */
- 255          void display_int(S32 I){
- 256   1        signed char rem;
- 257   1        signed char i;
- 258   1        signed char sign = 0;
- 259   1        if(I < -999999 || I > 999999){
- 260   2          set_display_buf("--EE--");
- 261   2          return;
- 262   2        }
- 263   1      //  set_display_buf(NULL); // empty buffer
- 264   1        for(i = 0; i < 6; i++)
- 265   1          display_buffer[i] = 0;
- 266   1        if(I == 0){ // just show zero
- 267   2          return;
- 268   2        }
- 269   1        if(I < 0){
- 270   2          sign = 1;
- 271   2          I *= -1;
+ 238   1      //  write_letter(display_buffer[N]);
+ 239   1        L = display_buffer[N] & 0x7f;
+ 240   1      //  all_digits_off();
+ 241   1        if(L < 18){ // letter
+ 242   2          L = LED_bits[L];
+ 243   2        }else{ // space
+ 244   2          L = 0;
+ 245   2        }
+ 246   1        if(N == 0) {
+ 247   2          light_off_digit(5);
+ 248   2        }
+ 249   1        else {
+ 250   2          light_off_digit(N-1);
+ 251   2        }
+ 252   1        for (i = 0; i<7; i++)
+ 253   1        {
+ 254   2          CLOCK = 0; // Clear CLK
+ 255   2      //    _asm("nop");
+ 256   2      //    _asm("nop");
+ 257   2      #ifdef INVERT_SMALL_DIGITS    
+ 258   2          if((N==2 || N== 3)) b = 1;
+ 259   2          else b = 0;
+ 260   2      #endif  
+ 261   2          if((L>>i) & 1)    
+ 262   2          {
+ 263   3            DATA = !b; // Set LED on
+ 264   3          }
+ 265   2          else
+ 266   2          {
+ 267   3            DATA = b; // Set LED OFF
+ 268   3          }
+ 269   2          CLOCK = 1; // Set CLK - rising edge transfers data
+ 270   2      //    _asm("nop");
+ 271   2      //    _asm("nop");
  272   2        }
- 273   1        for (i = 0; i < 6; i++)
- 274   1        {
- 275   2          rem = I - (I/10)*10;
- 276   2          display_buffer[5-i] = rem; //rem;
- 277   2          I = I/10;
- 278   2          if(I == 0) break;
- 279   2        }
- 280   1        if(sign && i < 6) display_buffer[5-i] = 16; // minus sign
- 281   1      }
- 282          
- 283          
- 284          /**
- 285           * convert integer value in seconds and minutes into string and display it
- 286           * @param i - value to display, -999 <= i <= 9999, if wrong, displays "---E"
- 287           */
- 288          void display_int_sec(S32 I){
- 289   1        S32 rem;
- 290   1        signed char i;
- 291   1        signed char N = 5;
- 292   1      
- 293   1        for(i = 0; i < 6; i++)
- 294   1          display_buffer[i] = 0;
- 295   1        if(I == 0){ // just show zero
- 296   2          return;
- 297   2        }
- 298   1      
- 299   1        I = I/3600 * 10000 + ((I - (I/3600)*3600)/60)* 100 + (I - (I/60)*60);
-C51 COMPILER V9.60.7.0   LED                                                               09/29/2024 19:19:16 PAGE 6   
+ 273   1      
+ 274   1        light_up_digit(N);
+ 275   1      }
+ 276          
+ 277          /**
+ 278           * Show next digit - function calls from main() by some system time value amount
+ 279           */
+ 280          void show_next_digit(void){
+ 281   1        show_buf_digit(N_current++);
+ 282   1        if(N_current > 5) N_current = 0;
+ 283   1      }
+ 284          
+ 285          
+ 286          
+ 287          /**
+ 288           * convert integer value in into string and display it
+ 289           * @param i - value to display, -999999 <= i <= 999999, if wrong, displays "---E"
+ 290           */
+ 291          void display_int(S32 I){
+ 292   1        signed char rem;
+ 293   1        signed char i;
+ 294   1        signed char sign = 0;
+ 295   1        if(I < -999999 || I > 999999){
+ 296   2          set_display_buf("--EE--");
+ 297   2          return;
+ 298   2        }
+ 299   1      //  set_display_buf(NULL); // empty buffer
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 6   
 
- 300   1        do{
- 301   2          rem = I - (I/10)*10;
- 302   2          display_buffer[N] = rem;
- 303   2          I /= 10;
- 304   2        }while(--N > -1 && I);
- 305   1      }
- 306          
- 307          
- 308          /**
- 309           * displays digital point at position i
- 310           * @param i - position to display DP, concequent calls can light up many DPs
- 311           */
- 312          void display_DP_at_pos(U8 i){
- 313   1        if(i > 5) return;
- 314   1        display_buffer[i] |= 0x80;
- 315   1      }
+ 300   1        for(i = 0; i < 6; i++)
+ 301   1          display_buffer[i] = 0;
+ 302   1        if(I == 0){ // just show zero
+ 303   2          return;
+ 304   2        }
+ 305   1        if(I < 0){
+ 306   2          sign = 1;
+ 307   2          I *= -1;
+ 308   2        }
+ 309   1        for (i = 0; i < 6; i++)
+ 310   1        {
+ 311   2          rem = I - (I/10)*10;
+ 312   2          display_buffer[5-i] = rem; //rem;
+ 313   2          I = I/10;
+ 314   2          if(I == 0) break;
+ 315   2        }
+ 316   1        if(sign && i < 6) display_buffer[5-i] = 16; // minus sign
+ 317   1      }
+ 318          
+ 319          
+ 320          /**
+ 321           * convert integer value in seconds and minutes into string and display it
+ 322           * @param i - value to display, -999 <= i <= 9999, if wrong, displays "---E"
+ 323           */
+ 324          void display_int_sec(S32 I){
+ 325   1        S32 rem;
+ 326   1        signed char i;
+ 327   1        signed char N = 5;
+ 328   1      
+ 329   1        for(i = 0; i < 6; i++)
+ 330   1          display_buffer[i] = 0;
+ 331   1        if(I == 0){ // just show zero
+ 332   2          return;
+ 333   2        }
+ 334   1      
+ 335   1        I = I/3600 * 10000 + ((I - (I/3600)*3600)/60)* 100 + (I - (I/60)*60);
+ 336   1        do{
+ 337   2          rem = I - (I/10)*10;
+ 338   2          display_buffer[N] = rem;
+ 339   2          I /= 10;
+ 340   2        }while(--N > -1 && I);
+ 341   1      }
+ 342          
+ 343          
+ 344          /**
+ 345           * displays digital point at position i
+ 346           * @param i - position to display DP, concequent calls can light up many DPs
+ 347           */
+ 348          void display_DP_at_pos(U8 i){
+ 349   1        if(i > 5) return;
+ 350   1        display_buffer[i] |= 0x80;
+ 351   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1763    ----
+   CODE SIZE        =   1793    ----
    CONSTANT SIZE    =      7    ----
    XDATA SIZE       =     59    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
+C51 COMPILER V9.60.7.0   LED                                                               02/22/2025 21:59:20 PAGE 7   
+
    EDATA SIZE       =   ----    ----
    HDATA SIZE       =   ----    ----
    XDATA CONST SIZE =   ----    ----

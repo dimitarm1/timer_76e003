@@ -28,6 +28,8 @@
 #define CLOCK          P02 
 #define DATA           P10
 
+#define INVERT_SMALL_DIGITS // For Yellow 7 Seg
+
 void set_display_buf(char *str);
 void show_buf_digit(U8 N);
 void show_next_digit(void);

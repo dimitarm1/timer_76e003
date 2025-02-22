@@ -60,8 +60,8 @@ void main (void)
 
 #define BUTTON_MINUS   0x01
 #define BUTTON_PLUS    0x02
-#define BUTTON_START   0x04
-#define BUTTON_STOP    0x08
+#define BUTTON_STOP    0x04
+#define BUTTON_START   0x08
 
 #define STATE_NONE					0
 #define STATE_WAITING   		1
@@ -156,12 +156,24 @@ unsigned char scan_keys(void)
 
 
 void all_digits_off(void) {
+	#ifndef INVERT_SMALL_DIGITS
     P12 = 0; // Digit 1
     P01 = 0; // Digit 2
+	#else
+	  P12 = 1; // Digit 1
+    P01 = 1; // Digit 2
+	#endif
+	
     P04 = 0; // Digit 3
     P11 = 0; // Digit 4
+	
+  #ifndef INVERT_SMALL_DIGITS  
     P03 = 0; // Digit 5
     P00 = 0; // Digit 6
+	#else
+	  P03 = 1; // Digit 5
+    P00 = 1; // Digit 6
+	#endif
 }
 
 
@@ -276,7 +288,7 @@ void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
 				display_int_sec(0);
 			}
 		}
-		
+	  WDT_Clear();
     if (SFRS_TMP)                 /* for SFRS page */
     {
       ENABLE_SFR_PAGE1;
@@ -290,7 +302,8 @@ void main (void)
 		unsigned int j;
 		MODIFY_HIRC(HIRC_16);
 
-
+	  WDT_Clear();
+    WDT_Open(1024);
 		seconds_counter = 0;
 		last_key = 0;
 
@@ -328,12 +341,24 @@ void main (void)
     all_digits_off();
     display_int(0);
 
+		#ifndef INVERT_SMALL_DIGITS
     P12 = 1; // Digit 1
 		P01 = 1; // Digit 2
+		#else
+		P12 = 0; // Digit 1
+		P01 = 0; // Digit 2
+		#endif
+		
 		P04 = 1; // Digit 3
 		P11 = 1; // Digit 4
+		
+		#ifndef INVERT_SMALL_DIGITS
 		P03 = 1; // Digit 5
 		P00 = 1; // Digit 6
+		#else
+		P03 = 0; // Digit 5
+		P00 = 0; // Digit 6
+		#endif
 
 		P10 = 0;
     for(i = 0; i < 16; i++) {
@@ -354,7 +379,7 @@ void main (void)
 			
     while(1)
     {
-
+	    
 
 //      display_int(counter++);
 
@@ -432,6 +457,9 @@ void main (void)
 							current_state = STATE_COOLING;
 							cool_time = DEFAULT_COOL_TIME_SEC;
 							display_int_sec(cool_time);
+						}
+						else if(current_state == STATE_COOLING) {
+							cool_time = 1;
 						}
 					}
 				  break;

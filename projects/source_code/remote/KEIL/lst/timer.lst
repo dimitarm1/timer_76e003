@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   TIMER                                                             09/29/2024 20:14:46 PAGE 1   
+C51 COMPILER V9.60.7.0   TIMER                                                             02/22/2025 21:59:20 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TIMER
@@ -62,7 +62,7 @@ line level    source
               #pragma vector=0x0B                             // Interrupt 1 
               __interrupt void Timer0_ISR(void)
               #elif defined __SDCC__
-C51 COMPILER V9.60.7.0   TIMER                                                             09/29/2024 20:14:46 PAGE 2   
+C51 COMPILER V9.60.7.0   TIMER                                                             02/22/2025 21:59:20 PAGE 2   
 
               void Timer0_ISR (void) __interrupt (1)          // vector=0x0B
               #endif
@@ -126,7 +126,7 @@ line level    source
               void Timer1_ISR (void) interrupt 3             // vector=0x1B
               #elif defined __ICC8051__
               #pragma vector=0x1B                            // Interrupt 3
-C51 COMPILER V9.60.7.0   TIMER                                                             09/29/2024 20:14:46 PAGE 3   
+C51 COMPILER V9.60.7.0   TIMER                                                             02/22/2025 21:59:20 PAGE 3   
 
               __interrupt void Timer1_ISR(void)
               #elif defined __SDCC__
@@ -190,7 +190,7 @@ line level    source
              -105ms
  163          */
  164          #if 0    
-C51 COMPILER V9.60.7.0   TIMER                                                             09/29/2024 20:14:46 PAGE 4   
+C51 COMPILER V9.60.7.0   TIMER                                                             02/22/2025 21:59:20 PAGE 4   
 
               #if defined __C51__
               void Timer2_ISR(void)  interrupt 5
@@ -254,7 +254,7 @@ line level    source
               #elif defined __SDCC__
               void Timer3_ISR(void)   __interrupt  (16)
               #endif
-C51 COMPILER V9.60.7.0   TIMER                                                             09/29/2024 20:14:46 PAGE 5   
+C51 COMPILER V9.60.7.0   TIMER                                                             02/22/2025 21:59:20 PAGE 5   
 
               {
                   SFRS_TMP = SFRS;              /* for SFRS page */

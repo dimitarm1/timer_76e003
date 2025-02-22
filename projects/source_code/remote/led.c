@@ -90,10 +90,18 @@ static const U8 LED_bits[18] = {0xfe,0x30,0xed,0xf9,0x33,0xdb,0xdf,0xf0,0xff,0xf
 void light_up_digit(U8 N){
 	switch(N){
 		case 0:
+		  #ifndef INVERT_SMALL_DIGITS	
 			 P01 = 1; // Digit 1
+			#else
+		   P01 = 0; // Digit 1
+			#endif
 		break;
 		case 1:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P12 = 1; // Digit 2
+			#else
+		   P12 = 0; // Digit 2
+		  #endif
 		break;
 		case 2: 
 			 P04 = 1; // Digit 3
@@ -102,10 +110,18 @@ void light_up_digit(U8 N){
 			 P11 = 1; // Digit 4
 		break;
 		case 4:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P03 = 1; // Digit 5
+		  #else
+		   P03 = 0; // Digit 5
+		  #endif
 		break;
 		case 5:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P00 = 1; // Digit 6
+		  #else
+		   P00 = 0; // Digit 6
+		  #endif
 		break;
 	}
 }
@@ -113,10 +129,18 @@ void light_up_digit(U8 N){
 void light_off_digit(U8 N){
 	switch(N){
 		case 0:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P01 = 0; // Digit 1
+		  #else
+		   P01 = 1; // Digit 1
+		  #endif
 		break;
 		case 1:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P12 = 0; // Digit 2
+		  #else
+		   P12 = 1; // Digit 2
+		  #endif
 		break;
 		case 2:
 			 P04 = 0; // Digit 3
@@ -125,10 +149,18 @@ void light_off_digit(U8 N){
 			 P11 = 0; // Digit 4
 		break;
 		case 4:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P03 = 0; // Digit 5
+		  #else
+		   P03 = 1; // Digit 5
+		  #endif
 		break;
 		case 5:
+			#ifndef INVERT_SMALL_DIGITS	
 			 P00 = 0; // Digit 6
+		  #else
+		   P00 = 1; // Digit 6
+		  #endif
 		break;
 	}
 }
@@ -222,7 +254,11 @@ void show_buf_digit(U8 N){
 		CLOCK = 0; // Clear CLK
 //		_asm("nop");
 //		_asm("nop");
-		if((L>>i) & 1)
+#ifdef INVERT_SMALL_DIGITS		
+		if((N==2 || N== 3)) b = 1;
+		else b = 0;
+#endif	
+		if((L>>i) & 1)		
 		{
 			DATA = !b; // Set LED on
 		}
